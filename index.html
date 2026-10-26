@@ -102,8 +102,8 @@ figure{margin:0}
 .doors{display:grid;grid-template-columns:1fr 1fr}
 .door{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;padding-block:34px 38px;padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));text-decoration:none;min-width:0;transition:background .4s}
 @media (min-width:860px){.door{padding-left:48px;padding-right:48px}}
-.door.fic{background:#080e0a;color:var(--hueso)}
-.door.fic:hover{background:#0c150f}
+.door.fic{background:#000;color:var(--hueso)}
+.door.fic:hover{background:#0b0b0b}
 .door.com{background:var(--lino);color:var(--tinta)}
 .door.com:hover{background:var(--lino2)}
 .door h2{font-size:clamp(34px,4.2vw,62px)}
@@ -765,7 +765,7 @@ dialog.vp .x{background:none;border:0;color:var(--hueso);font-size:30px;line-hei
       </div>
       <p class="body" style="margin-top:28px"><span lang="es">¿Buscas un comercial o una campaña?</span><span lang="en">Looking for a commercial or a campaign?</span> <a href="#comerciales" style="color:var(--hueso)"><span lang="es">Ve a Comerciales</span><span lang="en">Go to Commercial</span></a></p>
     </div>
-    <form id="cform" class="dk" novalidate>
+    <form id="cform" class="dk" novalidate><input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
       <div class="f"><label for="c-name"><span lang="es">Nombre</span><span lang="en">Name</span></label><input id="c-name" name="name" autocomplete="name"></div>
       <div class="f"><label for="c-co"><span lang="es">Empresa</span><span lang="en">Company</span></label><input id="c-co" name="company" autocomplete="organization"></div>
       <div class="f"><label for="c-mail"><span lang="es">Correo</span><span lang="en">Email</span></label><input id="c-mail" name="email" type="email" autocomplete="email"></div>
@@ -907,7 +907,7 @@ dialog.vp .x{background:none;border:0;color:var(--hueso);font-size:30px;line-hei
           <div><span class="sm" lang="es">Ventas</span><span class="sm" lang="en">Sales</span><strong>sales@voxin.xyz</strong></div>
           <div><span class="sm" lang="es">Proyectos</span><span class="sm" lang="en">Projects</span><strong>projects@voxin.xyz</strong></div>
         </div></div>
-      <form id="quote" novalidate>
+      <form id="quote" novalidate><input type="text" name="_honey" tabindex="-1" autocomplete="off" aria-hidden="true" style="position:absolute;left:-9999px;width:1px;height:1px;opacity:0">
         <div class="f"><label for="q-name"><span lang="es">Nombre</span><span lang="en">Name</span></label><input id="q-name" name="name" autocomplete="name"></div>
         <div class="f"><label for="q-co"><span lang="es">Empresa o marca</span><span lang="en">Company or brand</span></label><input id="q-co" name="company" autocomplete="organization"></div>
         <div class="f"><label for="q-mail"><span lang="es">Correo</span><span lang="en">Email</span></label><input id="q-mail" name="email" type="email" autocomplete="email"></div>
@@ -1155,12 +1155,23 @@ let l0='es';try{l0=localStorage.getItem('vox-lang')||'es'}catch(e){}
 setLang(l0);show();
 
 /* ---------- forms ---------- */
-document.getElementById('cform').addEventListener('submit',e=>{e.preventDefault();const f=e.target,n=document.getElementById('cnote'),es=L()==='es';
-  if(!f.name.value.trim()||!/\S+@\S+\.\S+/.test(f.email.value)){n.className='note';n.textContent=es?'Escribe tu nombre y un correo válido para poder responderte.':'Add your name and a valid email so we can reply.';return}
-  const sel=f.type.options[f.type.selectedIndex].text;const body=`${f.message.value}\n\n${f.name.value}${f.company.value?' / '+f.company.value:''}\n${f.email.value}`;location.href='mailto:projects@voxin.xyz?subject='+encodeURIComponent('Web Vox In: '+sel+' / '+f.name.value)+'&body='+encodeURIComponent(body);n.className='note ok';n.textContent=es?'Se abrió tu correo con el mensaje listo para enviar a projects@voxin.xyz.':'Your email app opened with the message ready to send to projects@voxin.xyz.'});
-document.getElementById('quote').addEventListener('submit',e=>{e.preventDefault();const f=e.target,n=document.getElementById('note'),es=L()==='es';
-  if(!f.name.value.trim()||!/\S+@\S+\.\S+/.test(f.email.value)){n.className='note';n.textContent=es?'Escribe tu nombre y un correo válido para poder responderte.':'Add your name and a valid email so we can reply.';return}
-  const g=s=>s.options[s.selectedIndex].text;const body=`${f.message.value}\n\n${es?'Tipo':'Type'}: ${g(f.type)}\n${es?'Presupuesto':'Budget'}: ${g(f.budget)}\n\n${f.name.value}${f.company.value?' / '+f.company.value:''}\n${f.email.value}${f.phone.value?'\nWhatsApp: '+f.phone.value:''}`;location.href='mailto:sales@voxin.xyz?subject='+encodeURIComponent('Cotización web: '+g(f.type)+' / '+(f.company.value||f.name.value))+'&body='+encodeURIComponent(body);n.className='note ok';n.textContent=es?'Se abrió tu correo con la solicitud lista para enviar a sales@voxin.xyz.':'Your email app opened with the request ready to send to sales@voxin.xyz.'});
+/* forms: sent straight to the inbox through FormSubmit; mailto only as a fallback */
+async function sendForm(f,n,to,subject,fields,mailBody){const es=L()==='es',btn=f.querySelector('button[type=submit]');
+  if(f._honey&&f._honey.value)return;
+  btn.disabled=true;n.className='note';n.textContent=es?'Enviando…':'Sending…';
+  try{const r=await fetch('https://formsubmit.co/ajax/'+to,{method:'POST',headers:{'Content-Type':'application/json',Accept:'application/json'},body:JSON.stringify(Object.assign({_subject:subject,_template:'table',_captcha:'false',_replyto:f.email.value},fields))});
+    const j=await r.json().catch(()=>({}));if(!r.ok||String(j.success)==='false')throw new Error(j.message||r.status);
+    f.reset();n.className='note ok';n.textContent=es?'¡Gracias! Recibimos tu mensaje y te responderemos pronto.':'Thank you! We got your message and will reply soon.'}
+  catch(err){n.className='note';n.innerHTML=es?`No pudimos enviarlo. <a href="mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}" style="color:inherit">Escríbenos directamente a ${to}</a>.`:`We couldn't send it. <a href="mailto:${to}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(mailBody)}" style="color:inherit">Email us at ${to}</a>.`}
+  finally{btn.disabled=false}}
+const opt=s=>s.options[s.selectedIndex].text;
+const bad=(f,n)=>{if(!f.name.value.trim()||!/\S+@\S+\.\S+/.test(f.email.value)){n.className='note';n.textContent=L()==='es'?'Escribe tu nombre y un correo válido para poder responderte.':'Add your name and a valid email so we can reply.';return true}return false};
+document.getElementById('cform').addEventListener('submit',e=>{e.preventDefault();const f=e.target,n=document.getElementById('cnote');if(bad(f,n))return;
+  const subject='Web Vox In: '+opt(f.type)+' / '+f.name.value;
+  sendForm(f,n,'projects@voxin.xyz',subject,{Nombre:f.name.value,Empresa:f.company.value,Correo:f.email.value,Motivo:opt(f.type),Mensaje:f.message.value},`${f.message.value}\n\n${f.name.value}\n${f.email.value}`)});
+document.getElementById('quote').addEventListener('submit',e=>{e.preventDefault();const f=e.target,n=document.getElementById('note');if(bad(f,n))return;
+  const subject='Cotización web: '+opt(f.type)+' / '+(f.company.value||f.name.value);
+  sendForm(f,n,'sales@voxin.xyz',subject,{Nombre:f.name.value,'Empresa o marca':f.company.value,Correo:f.email.value,WhatsApp:f.phone.value,'Tipo de proyecto':opt(f.type),Presupuesto:opt(f.budget),Mensaje:f.message.value},`${f.message.value}\n\n${f.name.value}\n${f.email.value}`)});
 })();
 </script>
 
